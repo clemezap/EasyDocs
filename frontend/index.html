@@ -4,11 +4,17 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>EasyDocs</title>
-    <link rel="stylesheet" href="css/estilos.css">
+    <link rel="stylesheet" href="/css/estilos.css">
 </head>
-<body>
-    <h1>Hola mundo</h1>
+<body class="centrado">
+    <main class="inicio" hidden>
+        <h1>Hola mundo</h1>
+        <p>Sesión iniciada como <strong id="nombre-usuario"></strong></p>
+        <button id="btn-logout" class="boton boton-secundario">Cerrar sesión</button>
+    </main>
 
-    <script src="js/config.js"></script>
+    <script src="/js/config.js"></script>
+    <script src="/js/api.js"></script>
+    <script src="/js/inicio.js"></script>
 </body>
 </html>

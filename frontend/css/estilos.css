@@ -4,12 +4,141 @@
     padding: 0;
 }
 
+:root {
+    --fondo: #f8f9fa;
+    --superficie: #ffffff;
+    --texto: #202124;
+    --texto-suave: #5f6368;
+    --borde: #dadce0;
+    --primario: #1a73e8;
+    --primario-hover: #1765cc;
+    --error: #d93025;
+}
+
 body {
     font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-    background: #f8f9fa;
-    color: #202124;
+    background: var(--fondo);
+    color: var(--texto);
     min-height: 100vh;
+}
+
+.centrado {
     display: flex;
     align-items: center;
     justify-content: center;
+    padding: 16px;
+}
+
+a {
+    color: var(--primario);
+    text-decoration: none;
+}
+
+a:hover {
+    text-decoration: underline;
+}
+
+/* Formularios de login y registro */
+.tarjeta {
+    width: 100%;
+    max-width: 400px;
+    background: var(--superficie);
+    border: 1px solid var(--borde);
+    border-radius: 8px;
+    padding: 40px 32px;
+}
+
+.logo {
+    font-size: 1.5rem;
+    color: var(--primario);
+    text-align: center;
+    margin-bottom: 8px;
+}
+
+.tarjeta h2 {
+    font-size: 1.25rem;
+    font-weight: 500;
+    text-align: center;
+    margin-bottom: 24px;
+}
+
+form {
+    display: flex;
+    flex-direction: column;
+}
+
+label {
+    font-size: 0.875rem;
+    color: var(--texto-suave);
+    margin-bottom: 4px;
+}
+
+input {
+    font: inherit;
+    padding: 10px 12px;
+    border: 1px solid var(--borde);
+    border-radius: 4px;
+    margin-bottom: 16px;
+}
+
+input:focus {
+    outline: 2px solid var(--primario);
+    border-color: transparent;
+}
+
+.boton {
+    font: inherit;
+    font-weight: 500;
+    padding: 10px 16px;
+    border: none;
+    border-radius: 4px;
+    background: var(--primario);
+    color: #fff;
+    cursor: pointer;
+}
+
+.boton:hover {
+    background: var(--primario-hover);
+}
+
+.boton:disabled {
+    opacity: 0.6;
+    cursor: default;
+}
+
+.boton-secundario {
+    background: transparent;
+    color: var(--primario);
+    border: 1px solid var(--borde);
+}
+
+.boton-secundario:hover {
+    background: #f1f3f4;
+}
+
+.error {
+    color: var(--error);
+    font-size: 0.875rem;
+    margin-bottom: 16px;
+}
+
+.pie {
+    margin-top: 24px;
+    text-align: center;
+    font-size: 0.875rem;
+    color: var(--texto-suave);
+}
+
+/* Página de inicio (temporal) */
+.inicio {
+    text-align: center;
+}
+
+.inicio h1 {
+    margin-bottom: 8px;
+}
+
+.inicio p {
+    color: var(--texto-suave);
+    margin-bottom: 24px;
 }

@@ -1,2 +1,2 @@
-// URL base de la API (backend Laravel)
-const API_URL = 'http://localhost:8000/api';
+// URL base de la API. El frontend y el backend se sirven desde el mismo origen.
+const API_URL = '/api';
