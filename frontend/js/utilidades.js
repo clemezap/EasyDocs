@@ -14,6 +14,7 @@ const ICONOS = {
     error: '<circle cx="12" cy="12" r="9"/><path d="M12 7.5v5.5M12 16.5v.01"/>',
     papelera: '<path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13M10 11v6M14 11v6"/>',
     restaurar: '<path d="M4 12a8 8 0 1 0 2.3-5.7L4 8.6"/><path d="M4 4v4.6h4.6"/>',
+    compartir: '<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0M19 8v6M16 11h6"/>',
 };
 
 // Categoría de un archivo según su extensión o su tipo MIME (para el color de su icono)
@@ -88,7 +89,13 @@ function formatearTamano(bytes) {
 
 // HTML de una fila. "fecha" es la columna de fecha a mostrar (ej. actualizado_en).
 // Solo las carpetas con carpetaAbrible = true tienen el nombre como botón.
-function filaElemento(el, { fecha, carpetaAbrible = false }) {
+// "columnas" reemplaza las dos columnas de la derecha (HTML ya escapado).
+function filaElemento(el, { fecha, carpetaAbrible = false, columnas }) {
+    const [columna1, columna2] = columnas ?? [
+        formatearFecha(el[fecha]),
+        el.tipo === 'carpeta' ? '—' : formatearTamano(el.tamano),
+    ];
+
     const nombre = escaparHtml(el.nombre);
     const categoria = el.tipo === 'archivo' ? 'tipo-' + categoriaArchivo(el.tipo_mime, el.nombre) : '';
 
@@ -101,8 +108,8 @@ function filaElemento(el, { fecha, carpetaAbrible = false }) {
                     ? `<button type="button" class="abrir-elemento" title="${nombre}">${nombre}</button>`
                     : `<span title="${nombre}">${nombre}</span>`}
             </span>
-            <span class="col-extra">${formatearFecha(el[fecha])}</span>
-            <span class="col-extra">${el.tipo === 'carpeta' ? '—' : formatearTamano(el.tamano)}</span>
+            <span class="col-extra">${columna1}</span>
+            <span class="col-extra">${columna2}</span>
             <button type="button" class="boton-icono btn-opciones" aria-label="Opciones de ${nombre}" aria-haspopup="menu">${icono(ICONOS.opciones)}</button>
         </li>
     `;
@@ -112,15 +119,17 @@ function filaElemento(el, { fecha, carpetaAbrible = false }) {
 //   buscar(id)            -> el elemento con ese id
 //   alAbrirCarpeta(id)    -> opcional; clic en el nombre o doble clic en la fila
 //   alElegir(accion, el)  -> opción elegida del menú (data-accion)
+//   opcionVisible(accion, el) -> opcional; para ocultar opciones según el elemento
 // Las opciones del menú con data-tipos="carpeta archivo" solo aparecen en esos tipos.
-function prepararLista({ lista, seleccionarTodo, menu, buscar, alAbrirCarpeta, alElegir }) {
+function prepararLista({ lista, seleccionarTodo, menu, buscar, alAbrirCarpeta, alElegir, opcionVisible = () => true }) {
     let elementoMenu = null;
 
     function abrirMenu(fila, boton) {
         elementoMenu = buscar(fila.dataset.id);
 
         menu.querySelectorAll('[data-tipos]').forEach((opcion) => {
-            opcion.hidden = !opcion.dataset.tipos.split(' ').includes(elementoMenu.tipo);
+            opcion.hidden = !opcion.dataset.tipos.split(' ').includes(elementoMenu.tipo)
+                || !opcionVisible(opcion.dataset.accion, elementoMenu);
         });
 
         const caja = boton.getBoundingClientRect();
@@ -265,4 +274,115 @@ function confirmar({ titulo, mensaje, boton = 'Aceptar' }) {
         dialogo.showModal();
         dialogo.querySelector('[value="no"]').focus();
     });
+}
+
+// ---------------------------------------------------------------------------
+// Ventana para escribir un texto (nombre de carpeta, renombrar, ...).
+//   enviar(texto) -> promesa con { ok, datos } (la respuesta de api())
+// Si la API responde con error, se muestra en la misma ventana.
+// Devuelve una promesa con true si se guardó o false si se canceló.
+// ---------------------------------------------------------------------------
+
+function pedirTexto({ titulo, boton = 'Guardar', valor = '', finSeleccion, enviar }) {
+    let dialogo = document.getElementById('dialogo-texto');
+
+    if (!dialogo) {
+        dialogo = document.createElement('dialog');
+        dialogo.id = 'dialogo-texto';
+        dialogo.className = 'dialogo';
+        dialogo.innerHTML = `
+            <form novalidate>
+                <h2 id="dialogo-texto-titulo"></h2>
+                <input type="text" name="texto" maxlength="255" autocomplete="off" required aria-labelledby="dialogo-texto-titulo">
+                <p class="error" hidden></p>
+                <div class="dialogo-botones">
+                    <button type="button" class="boton boton-secundario" value="cancelar">Cancelar</button>
+                    <button type="submit" class="boton"></button>
+                </div>
+            </form>
+        `;
+        document.body.append(dialogo);
+    }
+
+    const form = dialogo.querySelector('form');
+    const campo = form.texto;
+    const error = form.querySelector('.error');
+    const aceptar = form.querySelector('[type="submit"]');
+
+    dialogo.querySelector('h2').textContent = titulo;
+    aceptar.textContent = boton;
+    aceptar.disabled = false;
+    error.hidden = true;
+    campo.value = valor;
+
+    return new Promise((resolve) => {
+        function terminar(resultado) {
+            form.removeEventListener('submit', alEnviar);
+            dialogo.removeEventListener('click', alHacerClic);
+            dialogo.removeEventListener('close', alCerrar);
+            if (dialogo.open) dialogo.close();
+            resolve(resultado);
+        }
+
+        async function alEnviar(e) {
+            e.preventDefault();
+
+            const texto = campo.value.trim();
+            if (!texto) {
+                error.textContent = 'El nombre es obligatorio.';
+                error.hidden = false;
+                return;
+            }
+
+            aceptar.disabled = true;
+            const { ok, datos } = await enviar(texto);
+            aceptar.disabled = false;
+
+            if (ok) {
+                terminar(true);
+            } else {
+                error.textContent = mensajeDeError(datos);
+                error.hidden = false;
+            }
+        }
+
+        function alHacerClic(e) {
+            if (e.target.closest('[value="cancelar"]')) terminar(false);
+        }
+
+        function alCerrar() {
+            terminar(false);
+        }
+
+        form.addEventListener('submit', alEnviar);
+        dialogo.addEventListener('click', alHacerClic);
+        dialogo.addEventListener('close', alCerrar);
+
+        dialogo.showModal();
+        campo.setSelectionRange(0, finSeleccion ?? valor.length);
+    });
+}
+
+// Renombrar una carpeta o un archivo. En archivos se selecciona el nombre sin la
+// extensión, como en Drive. Devuelve true si se cambió.
+function renombrarElemento(elemento) {
+    const ruta = elemento.tipo === 'carpeta' ? '/carpetas/' : '/archivos/';
+    const punto = elemento.nombre.lastIndexOf('.');
+
+    return pedirTexto({
+        titulo: 'Cambiar nombre',
+        boton: 'Guardar',
+        valor: elemento.nombre,
+        finSeleccion: elemento.tipo === 'archivo' && punto > 0 ? punto : undefined,
+        enviar: (nombre) => api(ruta + encodeURIComponent(elemento.id), {
+            method: 'PATCH',
+            body: { nombre },
+        }),
+    });
+}
+
+// Los archivos no se visualizan, solo se descargan. La descarga pasa por la API
+// (que valida la sesión), así que no se genera ningún enlace público.
+function descargarArchivo(id) {
+    window.location.href = API_URL + '/archivos/' + encodeURIComponent(id) + '/descargar';
 }

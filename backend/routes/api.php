@@ -3,6 +3,7 @@
 use App\Http\Controllers\ArchivoController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CarpetaController;
+use App\Http\Controllers\CompartirController;
 use App\Http\Controllers\PapeleraController;
 use Illuminate\Support\Facades\Route;
 
@@ -29,6 +30,13 @@ Route::middleware('web')->group(function () {
         Route::post('/archivos', [ArchivoController::class, 'subir']);
         Route::get('/archivos/{id}/descargar', [ArchivoController::class, 'descargar']);
         Route::patch('/archivos/{id}', [ArchivoController::class, 'renombrar']);
+
+        // Compartir con otros usuarios
+        Route::get('/compartidos', [CompartirController::class, 'conmigo']);
+        Route::get('/archivos/{id}/compartidos', [CompartirController::class, 'listar']);
+        Route::post('/archivos/{id}/compartidos', [CompartirController::class, 'agregar']);
+        Route::patch('/archivos/{id}/compartidos/{compartido}', [CompartirController::class, 'cambiarPermiso']);
+        Route::delete('/archivos/{id}/compartidos/{compartido}', [CompartirController::class, 'quitar']);
 
         // Papelera
         Route::post('/carpetas/{id}/papelera', [PapeleraController::class, 'enviarCarpeta']);

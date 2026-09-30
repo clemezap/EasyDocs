@@ -103,12 +103,15 @@ class ArchivoController extends Controller
         ]);
     }
 
+    /**
+     * Pueden cambiar el nombre el dueño y quienes tienen permiso de escritura.
+     */
     public function renombrar(Request $request, string $id): JsonResponse
     {
         $usuarioId = $this->usuarioId($request);
 
-        if (! $this->archivoPropio($id, $usuarioId)) {
-            return $this->noEncontrado('El archivo no existe.');
+        if (! $this->archivoEditable($id, $usuarioId)) {
+            return $this->noEncontrado('El archivo no existe o no tienes permiso para modificarlo.');
         }
 
         $datos = $request->validate([
@@ -124,12 +127,9 @@ class ArchivoController extends Controller
             return $this->errorValidacion('nombre', 'El nombre es obligatorio.');
         }
 
-        DB::update(
-            'UPDATE archivos SET nombre = ? WHERE id = ? AND usuario_id = ?',
-            [$nombre, $id, $usuarioId]
-        );
+        DB::update('UPDATE archivos SET nombre = ? WHERE id = ?', [$nombre, $id]);
 
-        return response()->json(['archivo' => $this->archivoPropio($id, $usuarioId)]);
+        return response()->json(['archivo' => ['id' => $id, 'nombre' => $nombre]]);
     }
 
     /**
@@ -157,6 +157,22 @@ class ArchivoController extends Controller
                     ON ac.archivo_id = a.id AND ac.usuario_id = ?
              WHERE a.id = ? AND a.papelera = 0
                AND (a.usuario_id = ? OR ac.id IS NOT NULL)',
+            [$usuarioId, $id, $usuarioId]
+        );
+    }
+
+    /**
+     * Archivo activo que el usuario puede modificar: es el dueño O tiene permiso de escritura.
+     */
+    private function archivoEditable(string $id, int $usuarioId): ?object
+    {
+        return DB::selectOne(
+            "SELECT a.id
+             FROM archivos a
+             LEFT JOIN archivos_compartidos ac
+                    ON ac.archivo_id = a.id AND ac.usuario_id = ? AND ac.permiso = 'escritura'
+             WHERE a.id = ? AND a.papelera = 0
+               AND (a.usuario_id = ? OR ac.id IS NOT NULL)",
             [$usuarioId, $id, $usuarioId]
         );
     }

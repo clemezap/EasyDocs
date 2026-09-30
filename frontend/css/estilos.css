@@ -627,6 +627,113 @@ svg .relleno {
     line-height: 1.5;
 }
 
+/* Ventana "Compartir" */
+/* Doble clase: debe ganarle a .dialogo, que está definido más abajo */
+.dialogo.dialogo-compartir {
+    max-width: 520px;
+}
+
+.dialogo-compartir h2 {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.dialogo-compartir h3 {
+    font-size: 0.95rem;
+    font-weight: 500;
+    margin: 20px 0 8px;
+}
+
+.compartir-form {
+    display: grid;
+    grid-template-columns: 1fr auto auto;
+    gap: 8px;
+}
+
+.compartir-form input {
+    margin-bottom: 0;
+    min-width: 0;
+}
+
+select {
+    font: inherit;
+    padding: 9px 8px;
+    border: 1px solid var(--borde);
+    border-radius: 4px;
+    background: var(--superficie);
+    color: var(--texto);
+}
+
+.compartir-ayuda {
+    margin-top: 8px;
+    font-size: 0.8rem;
+    color: var(--texto-suave);
+}
+
+.dialogo-compartir .error {
+    margin: 8px 0 0;
+}
+
+.personas {
+    list-style: none;
+    max-height: 260px;
+    overflow-y: auto;
+    margin-bottom: 20px;
+}
+
+.persona {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 0;
+}
+
+.avatar-chico {
+    width: 36px;
+    height: 36px;
+    font-size: 0.95rem;
+}
+
+.persona-datos {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+.persona-nombre,
+.persona-correo {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.persona-correo {
+    font-size: 0.8rem;
+    color: var(--texto-suave);
+}
+
+.persona-rol {
+    font-size: 0.875rem;
+    color: var(--texto-suave);
+}
+
+.persona-permiso {
+    padding: 6px;
+    font-size: 0.875rem;
+}
+
+@media (max-width: 480px) {
+    .compartir-form {
+        grid-template-columns: 1fr auto;
+    }
+
+    .compartir-form input {
+        grid-column: 1 / -1;
+    }
+}
+
 /* Menú de opciones (⋮) */
 .menu-opciones {
     position: absolute;

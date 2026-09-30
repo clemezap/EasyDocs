@@ -1,5 +1,5 @@
 // Página Principal: navegación por carpetas; crear, renombrar y enviar a la papelera;
-// subir y descargar archivos.
+// subir, descargar y compartir archivos.
 
 (async function () {
     const usuario = await sesion;
@@ -11,19 +11,9 @@
     const seleccionarTodo = document.getElementById('seleccionar-todo');
     const menu = document.getElementById('menu-opciones');
 
-    const dialogo = document.getElementById('dialogo-nombre');
-    const formNombre = document.getElementById('form-nombre');
-    const campoNombre = document.getElementById('campo-nombre');
-    const dialogoTitulo = document.getElementById('dialogo-titulo');
-    const dialogoError = document.getElementById('dialogo-error');
-    const dialogoAceptar = document.getElementById('dialogo-aceptar');
-
     // null = raíz. Se guarda en la URL (?carpeta=<id>) para poder recargar y usar "atrás".
     let carpetaActual = new URLSearchParams(location.search).get('carpeta');
     let elementos = [];
-
-    // Qué hace el diálogo al aceptar: crear una carpeta o renombrar una existente
-    let accionDialogo = null;
 
     // ---------------------------------------------------------------------
     // Carga y dibujo
@@ -80,12 +70,6 @@
         listaVacia.hidden = elementos.length > 0;
     }
 
-    // Los archivos no se visualizan, solo se descargan. La descarga pasa por la API
-    // (que valida la sesión), así que no se genera ningún enlace público.
-    function descargarArchivo(id) {
-        window.location.href = API_URL + '/archivos/' + encodeURIComponent(id) + '/descargar';
-    }
-
     function abrirCarpeta(id) {
         carpetaActual = id || null;
         history.pushState(null, '', carpetaActual ? '?carpeta=' + encodeURIComponent(carpetaActual) : '/index.html');
@@ -120,30 +104,19 @@
     // Opciones del menú (⋮)
     // ---------------------------------------------------------------------
 
-    function elegirOpcion(accion, elemento) {
-        const ruta = elemento.tipo === 'carpeta' ? '/carpetas/' : '/archivos/';
-
+    async function elegirOpcion(accion, elemento) {
         switch (accion) {
             case 'descargar':
                 descargarArchivo(elemento.id);
                 break;
 
-            case 'renombrar': {
-                // En archivos se selecciona el nombre sin la extensión, como en Drive
-                const punto = elemento.nombre.lastIndexOf('.');
-
-                abrirDialogo({
-                    titulo: 'Cambiar nombre',
-                    boton: 'Guardar',
-                    valor: elemento.nombre,
-                    finSeleccion: elemento.tipo === 'archivo' && punto > 0 ? punto : undefined,
-                    enviar: (nombre) => api(ruta + encodeURIComponent(elemento.id), {
-                        method: 'PATCH',
-                        body: { nombre },
-                    }),
-                });
+            case 'compartir':
+                abrirCompartir(elemento);
                 break;
-            }
+
+            case 'renombrar':
+                if (await renombrarElemento(elemento)) cargar();
+                break;
 
             case 'papelera':
                 enviarAPapelera(elemento);
@@ -173,11 +146,11 @@
     }
 
     // ---------------------------------------------------------------------
-    // Diálogo crear / renombrar
+    // Nueva carpeta
     // ---------------------------------------------------------------------
 
-    document.getElementById('btn-nueva-carpeta').addEventListener('click', () => {
-        abrirDialogo({
+    document.getElementById('btn-nueva-carpeta').addEventListener('click', async () => {
+        const creada = await pedirTexto({
             titulo: 'Nueva carpeta',
             boton: 'Crear',
             valor: 'Carpeta sin título',
@@ -186,44 +159,8 @@
                 body: { nombre, carpeta_padre: carpetaActual },
             }),
         });
-    });
 
-    function abrirDialogo({ titulo, boton, valor, finSeleccion, enviar }) {
-        accionDialogo = enviar;
-        dialogoTitulo.textContent = titulo;
-        dialogoAceptar.textContent = boton;
-        dialogoAceptar.disabled = false;
-        dialogoError.hidden = true;
-        campoNombre.value = valor;
-
-        dialogo.showModal();
-        campoNombre.setSelectionRange(0, finSeleccion ?? valor.length);
-    }
-
-    document.getElementById('dialogo-cancelar').addEventListener('click', () => dialogo.close());
-
-    formNombre.addEventListener('submit', async (e) => {
-        e.preventDefault();
-
-        const nombre = campoNombre.value.trim();
-        if (!nombre) {
-            dialogoError.textContent = 'El nombre es obligatorio.';
-            dialogoError.hidden = false;
-            return;
-        }
-
-        dialogoAceptar.disabled = true;
-        const { ok, datos } = await accionDialogo(nombre);
-        dialogoAceptar.disabled = false;
-
-        if (!ok) {
-            dialogoError.textContent = mensajeDeError(datos);
-            dialogoError.hidden = false;
-            return;
-        }
-
-        dialogo.close();
-        cargar();
+        if (creada) cargar();
     });
 
     // ---------------------------------------------------------------------
