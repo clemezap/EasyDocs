@@ -3,6 +3,7 @@
 use App\Http\Controllers\ArchivoController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CarpetaController;
+use App\Http\Controllers\PapeleraController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/estado', function () {
@@ -28,5 +29,16 @@ Route::middleware('web')->group(function () {
         Route::post('/archivos', [ArchivoController::class, 'subir']);
         Route::get('/archivos/{id}/descargar', [ArchivoController::class, 'descargar']);
         Route::patch('/archivos/{id}', [ArchivoController::class, 'renombrar']);
+
+        // Papelera
+        Route::post('/carpetas/{id}/papelera', [PapeleraController::class, 'enviarCarpeta']);
+        Route::post('/archivos/{id}/papelera', [PapeleraController::class, 'enviarArchivo']);
+
+        Route::get('/papelera', [PapeleraController::class, 'listar']);
+        Route::delete('/papelera', [PapeleraController::class, 'vaciar']);
+        Route::post('/papelera/carpetas/{id}/restaurar', [PapeleraController::class, 'restaurarCarpeta']);
+        Route::post('/papelera/archivos/{id}/restaurar', [PapeleraController::class, 'restaurarArchivo']);
+        Route::delete('/papelera/carpetas/{id}', [PapeleraController::class, 'eliminarCarpeta']);
+        Route::delete('/papelera/archivos/{id}', [PapeleraController::class, 'eliminarArchivo']);
     });
 });

@@ -12,6 +12,8 @@ const ICONOS = {
     cerrar: '<path d="M6 6l12 12M18 6L6 18"/>',
     listo: '<path d="M5 12.5l4.5 4.5L19 7.5"/>',
     error: '<circle cx="12" cy="12" r="9"/><path d="M12 7.5v5.5M12 16.5v.01"/>',
+    papelera: '<path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13M10 11v6M14 11v6"/>',
+    restaurar: '<path d="M4 12a8 8 0 1 0 2.3-5.7L4 8.6"/><path d="M4 4v4.6h4.6"/>',
 };
 
 // Categoría de un archivo según su extensión o su tipo MIME (para el color de su icono)
@@ -78,4 +80,189 @@ function formatearTamano(bytes) {
     }
 
     return `${i === 0 ? valor : valor.toFixed(1)} ${unidades[i]}`;
+}
+
+// ---------------------------------------------------------------------------
+// Lista de carpetas y archivos (Principal, Papelera, ...)
+// ---------------------------------------------------------------------------
+
+// HTML de una fila. "fecha" es la columna de fecha a mostrar (ej. actualizado_en).
+// Solo las carpetas con carpetaAbrible = true tienen el nombre como botón.
+function filaElemento(el, { fecha, carpetaAbrible = false }) {
+    const nombre = escaparHtml(el.nombre);
+    const categoria = el.tipo === 'archivo' ? 'tipo-' + categoriaArchivo(el.tipo_mime, el.nombre) : '';
+
+    return `
+        <li class="fila" data-id="${el.id}" data-tipo="${el.tipo}">
+            <input type="checkbox" class="seleccion" aria-label="Seleccionar ${nombre}">
+            <span class="nombre-elemento">
+                <span class="icono-${el.tipo} ${categoria}">${icono(ICONOS[el.tipo])}</span>
+                ${el.tipo === 'carpeta' && carpetaAbrible
+                    ? `<button type="button" class="abrir-elemento" title="${nombre}">${nombre}</button>`
+                    : `<span title="${nombre}">${nombre}</span>`}
+            </span>
+            <span class="col-extra">${formatearFecha(el[fecha])}</span>
+            <span class="col-extra">${el.tipo === 'carpeta' ? '—' : formatearTamano(el.tamano)}</span>
+            <button type="button" class="boton-icono btn-opciones" aria-label="Opciones de ${nombre}" aria-haspopup="menu">${icono(ICONOS.opciones)}</button>
+        </li>
+    `;
+}
+
+// Conecta los eventos de una lista: abrir carpetas, selección con casillas y menú ⋮.
+//   buscar(id)            -> el elemento con ese id
+//   alAbrirCarpeta(id)    -> opcional; clic en el nombre o doble clic en la fila
+//   alElegir(accion, el)  -> opción elegida del menú (data-accion)
+// Las opciones del menú con data-tipos="carpeta archivo" solo aparecen en esos tipos.
+function prepararLista({ lista, seleccionarTodo, menu, buscar, alAbrirCarpeta, alElegir }) {
+    let elementoMenu = null;
+
+    function abrirMenu(fila, boton) {
+        elementoMenu = buscar(fila.dataset.id);
+
+        menu.querySelectorAll('[data-tipos]').forEach((opcion) => {
+            opcion.hidden = !opcion.dataset.tipos.split(' ').includes(elementoMenu.tipo);
+        });
+
+        const caja = boton.getBoundingClientRect();
+        menu.hidden = false;
+
+        const izquierda = Math.min(caja.right - menu.offsetWidth, window.innerWidth - menu.offsetWidth - 8);
+        menu.style.left = Math.max(8, izquierda) + window.scrollX + 'px';
+        menu.style.top = caja.bottom + 4 + window.scrollY + 'px';
+    }
+
+    function cerrarMenu() {
+        menu.hidden = true;
+    }
+
+    lista.addEventListener('click', (e) => {
+        const fila = e.target.closest('.fila');
+        if (!fila) return;
+
+        if (e.target.closest('.abrir-elemento') && alAbrirCarpeta) {
+            alAbrirCarpeta(fila.dataset.id);
+        } else if (e.target.closest('.btn-opciones')) {
+            abrirMenu(fila, e.target.closest('.btn-opciones'));
+        } else if (e.target.matches('.seleccion')) {
+            fila.classList.toggle('seleccionada', e.target.checked);
+            const casillas = [...lista.querySelectorAll('.seleccion')];
+            seleccionarTodo.checked = casillas.length > 0 && casillas.every((c) => c.checked);
+        }
+    });
+
+    // Doble clic en la fila de una carpeta también la abre (como en Drive)
+    lista.addEventListener('dblclick', (e) => {
+        const fila = e.target.closest('.fila');
+        if (alAbrirCarpeta && fila && fila.dataset.tipo === 'carpeta' && !e.target.closest('input, button')) {
+            alAbrirCarpeta(fila.dataset.id);
+        }
+    });
+
+    seleccionarTodo.addEventListener('change', () => {
+        lista.querySelectorAll('.fila').forEach((fila) => {
+            fila.querySelector('.seleccion').checked = seleccionarTodo.checked;
+            fila.classList.toggle('seleccionada', seleccionarTodo.checked);
+        });
+    });
+
+    document.addEventListener('click', (e) => {
+        if (!menu.hidden && !e.target.closest('.menu-opciones, .btn-opciones')) cerrarMenu();
+    });
+
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') cerrarMenu();
+    });
+
+    menu.addEventListener('click', (e) => {
+        const opcion = e.target.closest('[data-accion]');
+        if (!opcion) return;
+
+        cerrarMenu();
+        alElegir(opcion.dataset.accion, elementoMenu);
+    });
+}
+
+// ---------------------------------------------------------------------------
+// Aviso temporal abajo al centro, con una acción opcional (ej. "Deshacer")
+// ---------------------------------------------------------------------------
+
+let temporizadorAviso = null;
+
+function mostrarAviso(mensaje, { textoAccion, alAccionar } = {}) {
+    let aviso = document.getElementById('aviso');
+
+    if (!aviso) {
+        aviso = document.createElement('div');
+        aviso.id = 'aviso';
+        aviso.className = 'aviso';
+        aviso.setAttribute('role', 'status');
+        document.body.append(aviso);
+    }
+
+    aviso.innerHTML = `<span></span>${textoAccion ? '<button type="button"></button>' : ''}`;
+    aviso.querySelector('span').textContent = mensaje;
+
+    if (textoAccion) {
+        const boton = aviso.querySelector('button');
+        boton.textContent = textoAccion;
+        boton.addEventListener('click', () => {
+            aviso.hidden = true;
+            alAccionar();
+        });
+    }
+
+    aviso.hidden = false;
+    clearTimeout(temporizadorAviso);
+    temporizadorAviso = setTimeout(() => { aviso.hidden = true; }, 6000);
+}
+
+// ---------------------------------------------------------------------------
+// Ventana de confirmación. Devuelve una promesa con true (aceptar) o false.
+// ---------------------------------------------------------------------------
+
+function confirmar({ titulo, mensaje, boton = 'Aceptar' }) {
+    let dialogo = document.getElementById('dialogo-confirmar');
+
+    if (!dialogo) {
+        dialogo = document.createElement('dialog');
+        dialogo.id = 'dialogo-confirmar';
+        dialogo.className = 'dialogo';
+        dialogo.innerHTML = `
+            <h2></h2>
+            <p class="dialogo-mensaje"></p>
+            <div class="dialogo-botones">
+                <button type="button" class="boton boton-secundario" value="no">Cancelar</button>
+                <button type="button" class="boton boton-peligro" value="si"></button>
+            </div>
+        `;
+        document.body.append(dialogo);
+    }
+
+    dialogo.querySelector('h2').textContent = titulo;
+    dialogo.querySelector('.dialogo-mensaje').textContent = mensaje;
+    dialogo.querySelector('[value="si"]').textContent = boton;
+
+    return new Promise((resolve) => {
+        function responder(respuesta) {
+            dialogo.removeEventListener('click', alHacerClic);
+            dialogo.removeEventListener('close', alCerrar);
+            if (dialogo.open) dialogo.close();
+            resolve(respuesta);
+        }
+
+        function alHacerClic(e) {
+            const boton = e.target.closest('button');
+            if (boton) responder(boton.value === 'si');
+        }
+
+        // Escape o cerrar de otra forma = cancelar
+        function alCerrar() {
+            responder(false);
+        }
+
+        dialogo.addEventListener('click', alHacerClic);
+        dialogo.addEventListener('close', alCerrar);
+        dialogo.showModal();
+        dialogo.querySelector('[value="no"]').focus();
+    });
 }

@@ -1,4 +1,5 @@
-// Página Principal: navegación por carpetas, crear y renombrar; subir, descargar y renombrar archivos.
+// Página Principal: navegación por carpetas; crear, renombrar y enviar a la papelera;
+// subir y descargar archivos.
 
 (async function () {
     const usuario = await sesion;
@@ -23,9 +24,6 @@
 
     // Qué hace el diálogo al aceptar: crear una carpeta o renombrar una existente
     let accionDialogo = null;
-
-    // Elemento sobre el que se abrió el menú ⋮
-    let elementoMenu = null;
 
     // ---------------------------------------------------------------------
     // Carga y dibujo
@@ -74,20 +72,9 @@
     function dibujarLista() {
         seleccionarTodo.checked = false;
 
-        lista.innerHTML = elementos.map((el) => `
-            <li class="fila" data-id="${el.id}" data-tipo="${el.tipo}">
-                <input type="checkbox" class="seleccion" aria-label="Seleccionar ${escaparHtml(el.nombre)}">
-                <span class="nombre-elemento">
-                    <span class="icono-${el.tipo} ${el.tipo === 'archivo' ? 'tipo-' + categoriaArchivo(el.tipo_mime, el.nombre) : ''}">${icono(ICONOS[el.tipo])}</span>
-                    ${el.tipo === 'carpeta'
-                        ? `<button type="button" class="abrir-elemento" title="${escaparHtml(el.nombre)}">${escaparHtml(el.nombre)}</button>`
-                        : `<span title="${escaparHtml(el.nombre)}">${escaparHtml(el.nombre)}</span>`}
-                </span>
-                <span class="col-extra">${formatearFecha(el.actualizado_en)}</span>
-                <span class="col-extra">${el.tipo === 'carpeta' ? '—' : formatearTamano(el.tamano)}</span>
-                <button type="button" class="boton-icono btn-opciones" aria-label="Opciones de ${escaparHtml(el.nombre)}" aria-haspopup="menu">${icono(ICONOS.opciones)}</button>
-            </li>
-        `).join('');
+        lista.innerHTML = elementos
+            .map((el) => filaElemento(el, { fecha: 'actualizado_en', carpetaAbrible: true }))
+            .join('');
 
         listaVacia.textContent = carpetaActual ? 'Esta carpeta está vacía.' : 'Aún no tienes archivos.';
         listaVacia.hidden = elementos.length > 0;
@@ -120,86 +107,28 @@
         if (enlace) abrirCarpeta(enlace.dataset.id);
     });
 
-    lista.addEventListener('click', (e) => {
-        const fila = e.target.closest('.fila');
-        if (!fila) return;
-
-        if (e.target.closest('.abrir-elemento')) {
-            abrirCarpeta(fila.dataset.id);
-        } else if (e.target.closest('.btn-opciones')) {
-            abrirMenu(fila, e.target.closest('.btn-opciones'));
-        } else if (e.target.matches('.seleccion')) {
-            fila.classList.toggle('seleccionada', e.target.checked);
-            actualizarSeleccionarTodo();
-        }
+    prepararLista({
+        lista,
+        seleccionarTodo,
+        menu,
+        buscar: (id) => elementos.find((el) => el.id === id),
+        alAbrirCarpeta: abrirCarpeta,
+        alElegir: elegirOpcion,
     });
-
-    // Doble clic en la fila de una carpeta también la abre (como en Drive)
-    lista.addEventListener('dblclick', (e) => {
-        const fila = e.target.closest('.fila');
-        if (fila && fila.dataset.tipo === 'carpeta' && !e.target.closest('input, button')) {
-            abrirCarpeta(fila.dataset.id);
-        }
-    });
-
-    seleccionarTodo.addEventListener('change', () => {
-        lista.querySelectorAll('.fila').forEach((fila) => {
-            fila.querySelector('.seleccion').checked = seleccionarTodo.checked;
-            fila.classList.toggle('seleccionada', seleccionarTodo.checked);
-        });
-    });
-
-    function actualizarSeleccionarTodo() {
-        const casillas = [...lista.querySelectorAll('.seleccion')];
-        seleccionarTodo.checked = casillas.length > 0 && casillas.every((c) => c.checked);
-    }
 
     // ---------------------------------------------------------------------
-    // Menú de opciones (⋮)
+    // Opciones del menú (⋮)
     // ---------------------------------------------------------------------
 
-    function abrirMenu(fila, boton) {
-        elementoMenu = elementos.find((el) => el.id === fila.dataset.id);
+    function elegirOpcion(accion, elemento) {
+        const ruta = elemento.tipo === 'carpeta' ? '/carpetas/' : '/archivos/';
 
-        menu.querySelectorAll('[data-tipos]').forEach((opcion) => {
-            opcion.hidden = !opcion.dataset.tipos.split(' ').includes(elementoMenu.tipo);
-        });
-
-        const caja = boton.getBoundingClientRect();
-        menu.hidden = false;
-
-        const izquierda = Math.min(caja.right - menu.offsetWidth, window.innerWidth - menu.offsetWidth - 8);
-        menu.style.left = Math.max(8, izquierda) + window.scrollX + 'px';
-        menu.style.top = caja.bottom + 4 + window.scrollY + 'px';
-    }
-
-    function cerrarMenu() {
-        menu.hidden = true;
-    }
-
-    document.addEventListener('click', (e) => {
-        if (!menu.hidden && !e.target.closest('#menu-opciones, .btn-opciones')) cerrarMenu();
-    });
-
-    document.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape') cerrarMenu();
-    });
-
-    menu.addEventListener('click', (e) => {
-        const opcion = e.target.closest('[data-accion]');
-        if (!opcion) return;
-
-        cerrarMenu();
-        const elemento = elementoMenu;
-
-        switch (opcion.dataset.accion) {
+        switch (accion) {
             case 'descargar':
                 descargarArchivo(elemento.id);
                 break;
 
             case 'renombrar': {
-                const ruta = elemento.tipo === 'carpeta' ? '/carpetas/' : '/archivos/';
-
                 // En archivos se selecciona el nombre sin la extensión, como en Drive
                 const punto = elemento.nombre.lastIndexOf('.');
 
@@ -215,8 +144,33 @@
                 });
                 break;
             }
+
+            case 'papelera':
+                enviarAPapelera(elemento);
+                break;
         }
-    });
+    }
+
+    // No se pide confirmación: se puede deshacer desde el aviso o desde la Papelera
+    async function enviarAPapelera(elemento) {
+        const tipo = elemento.tipo === 'carpeta' ? 'carpetas' : 'archivos';
+        const { ok, datos } = await api(`/${tipo}/${encodeURIComponent(elemento.id)}/papelera`, { method: 'POST' });
+
+        if (!ok) {
+            mostrarAviso(mensajeDeError(datos));
+            return;
+        }
+
+        cargar();
+
+        mostrarAviso(`"${elemento.nombre}" se envió a la papelera.`, {
+            textoAccion: 'Deshacer',
+            alAccionar: async () => {
+                await api(`/papelera/${tipo}/${encodeURIComponent(elemento.id)}/restaurar`, { method: 'POST' });
+                cargar();
+            },
+        });
+    }
 
     // ---------------------------------------------------------------------
     // Diálogo crear / renombrar
