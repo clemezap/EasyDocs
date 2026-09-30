@@ -22,7 +22,7 @@ class CarpetaController extends Controller
         $ruta = [];
 
         if ($carpetaId !== null) {
-            $carpeta = $this->buscarCarpeta($carpetaId, $usuarioId);
+            $carpeta = $this->carpetaActiva($carpetaId, $usuarioId);
 
             if (! $carpeta) {
                 return $this->noEncontrado('La carpeta no existe.');
@@ -73,7 +73,7 @@ class CarpetaController extends Controller
             return $this->errorValidacion('nombre', 'El nombre es obligatorio.');
         }
 
-        if ($padreId !== null && ! $this->buscarCarpeta($padreId, $usuarioId)) {
+        if ($padreId !== null && ! $this->carpetaActiva($padreId, $usuarioId)) {
             return $this->noEncontrado('La carpeta donde quieres crearla no existe.');
         }
 
@@ -88,13 +88,13 @@ class CarpetaController extends Controller
             [$id, $usuarioId, $padreId, $nombre]
         );
 
-        return response()->json(['carpeta' => $this->buscarCarpeta($id, $usuarioId)], 201);
+        return response()->json(['carpeta' => $this->carpetaActiva($id, $usuarioId)], 201);
     }
 
     public function renombrar(Request $request, string $id): JsonResponse
     {
         $usuarioId = $this->usuarioId($request);
-        $carpeta = $this->buscarCarpeta($id, $usuarioId);
+        $carpeta = $this->carpetaActiva($id, $usuarioId);
 
         if (! $carpeta) {
             return $this->noEncontrado('La carpeta no existe.');
@@ -119,20 +119,7 @@ class CarpetaController extends Controller
             [$nombre, $id, $usuarioId]
         );
 
-        return response()->json(['carpeta' => $this->buscarCarpeta($id, $usuarioId)]);
-    }
-
-    /**
-     * Carpeta activa (no en papelera) que pertenece al usuario, o null.
-     */
-    private function buscarCarpeta(string $id, int $usuarioId): ?object
-    {
-        return DB::selectOne(
-            'SELECT id, carpeta_padre, nombre, creado_en, actualizado_en
-             FROM carpetas
-             WHERE id = ? AND usuario_id = ? AND papelera = 0',
-            [$id, $usuarioId]
-        );
+        return response()->json(['carpeta' => $this->carpetaActiva($id, $usuarioId)]);
     }
 
     /**
@@ -154,16 +141,6 @@ class CarpetaController extends Controller
             SELECT id, nombre FROM ruta ORDER BY nivel DESC',
             [$carpetaId, $usuarioId]
         );
-    }
-
-    /**
-     * En SQL "= NULL" nunca es verdadero, por eso la raíz se filtra con IS NULL.
-     */
-    private function filtroPadre(?string $padreId): array
-    {
-        return $padreId === null
-            ? ['carpeta_padre IS NULL', []]
-            : ['carpeta_padre = ?', [$padreId]];
     }
 
     private function nombreRepetido(string $nombre, ?string $padreId, int $usuarioId, ?string $excluirId = null): bool

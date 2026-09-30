@@ -54,3 +54,43 @@ function mensajeDeError(datos) {
     }
     return (datos && datos.message) || 'Ocurrió un error. Intenta de nuevo.';
 }
+
+// Sube un archivo con XMLHttpRequest (fetch no informa el progreso de subida).
+// alProgresar recibe un número de 0 a 1. Devuelve { ok, status, datos } como api().
+async function subirArchivo(archivo, carpetaId, alProgresar) {
+    if (!leerCookie('XSRF-TOKEN')) {
+        await fetch(API_URL + '/sesion', { credentials: 'same-origin' });
+    }
+
+    const formulario = new FormData();
+    formulario.append('archivo', archivo);
+    if (carpetaId) formulario.append('carpeta_padre', carpetaId);
+
+    return new Promise((resolve) => {
+        const xhr = new XMLHttpRequest();
+        xhr.open('POST', API_URL + '/archivos');
+        xhr.setRequestHeader('Accept', 'application/json');
+        xhr.setRequestHeader('X-XSRF-TOKEN', leerCookie('XSRF-TOKEN') || '');
+
+        xhr.upload.addEventListener('progress', (e) => {
+            if (e.lengthComputable) alProgresar(e.loaded / e.total);
+        });
+
+        xhr.addEventListener('load', () => {
+            let datos = null;
+            try {
+                datos = JSON.parse(xhr.responseText);
+            } catch {
+                // Nginx responde HTML cuando el archivo excede client_max_body_size
+                if (xhr.status === 413) datos = { message: 'El archivo es demasiado grande.' };
+            }
+            resolve({ ok: xhr.status >= 200 && xhr.status < 300, status: xhr.status, datos });
+        });
+
+        xhr.addEventListener('error', () => {
+            resolve({ ok: false, status: 0, datos: { message: 'Error de conexión.' } });
+        });
+
+        xhr.send(formulario);
+    });
+}
