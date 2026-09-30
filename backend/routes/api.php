@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\CarpetaController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/estado', function () {
@@ -18,5 +19,9 @@ Route::middleware('web')->group(function () {
 
     Route::middleware('autenticado')->group(function () {
         Route::post('/logout', [AuthController::class, 'logout']);
+
+        Route::get('/carpetas/contenido', [CarpetaController::class, 'contenido']);
+        Route::post('/carpetas', [CarpetaController::class, 'crear']);
+        Route::patch('/carpetas/{id}', [CarpetaController::class, 'renombrar']);
     });
 });

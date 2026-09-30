@@ -31,7 +31,7 @@ class AuthController extends Controller
         $existe = DB::selectOne('SELECT id FROM usuarios WHERE correo = ?', [$correo]);
 
         if ($existe) {
-            return $this->error('correo', 'Ya existe una cuenta con este correo.');
+            return $this->errorValidacion('correo', 'Ya existe una cuenta con este correo.');
         }
 
         DB::insert(
@@ -67,7 +67,7 @@ class AuthController extends Controller
         );
 
         if (! $fila || ! Hash::check($datos['password'], $fila->password)) {
-            return $this->error('correo', 'Correo o contraseña incorrectos.');
+            return $this->errorValidacion('correo', 'Correo o contraseña incorrectos.');
         }
 
         $usuario = [
@@ -102,13 +102,5 @@ class AuthController extends Controller
         // Nuevo id de sesión para evitar fijación de sesión
         $request->session()->regenerate();
         $request->session()->put('usuario', $usuario);
-    }
-
-    private function error(string $campo, string $mensaje): JsonResponse
-    {
-        return response()->json([
-            'message' => $mensaje,
-            'errors' => [$campo => [$mensaje]],
-        ], 422);
     }
 }

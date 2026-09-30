@@ -12,7 +12,14 @@
 
         <main class="contenido">
             <header class="contenido-encabezado">
-                <h1>Principal</h1>
+                <nav class="ruta" id="ruta" aria-label="Ubicación"></nav>
+
+                <div class="acciones">
+                    <button type="button" class="boton boton-con-icono" id="btn-nueva-carpeta">
+                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6a2 2 0 0 1 2-2h4.2a2 2 0 0 1 1.4.6L12 6h7a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M12 10v6M9 13h6"/></svg>
+                        <span>Nueva carpeta</span>
+                    </button>
+                </div>
             </header>
 
             <section class="lista">
@@ -21,17 +28,44 @@
                     <span>Nombre</span>
                     <span class="col-extra">Última modificación</span>
                     <span class="col-extra">Tamaño</span>
+                    <span></span>
                 </div>
 
                 <ul class="lista-elementos" id="lista-elementos"></ul>
 
-                <p class="lista-vacia" id="lista-vacia">Aún no tienes archivos.</p>
+                <p class="lista-vacia" id="lista-vacia" hidden></p>
             </section>
         </main>
     </div>
 
+    <!-- Menú de opciones de un elemento (⋮) -->
+    <div class="menu-opciones" id="menu-opciones" role="menu" hidden>
+        <button type="button" role="menuitem" data-accion="renombrar">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h4L19 9a2.8 2.8 0 0 0-4-4L4 16z"/><path d="M13.5 6.5l4 4"/></svg>
+            <span>Renombrar</span>
+        </button>
+    </div>
+
+    <!-- Diálogo para crear o renombrar una carpeta -->
+    <dialog class="dialogo" id="dialogo-nombre">
+        <form id="form-nombre" novalidate>
+            <h2 id="dialogo-titulo">Nueva carpeta</h2>
+
+            <input type="text" id="campo-nombre" name="nombre" maxlength="255" autocomplete="off" required aria-labelledby="dialogo-titulo">
+
+            <p class="error" id="dialogo-error" hidden></p>
+
+            <div class="dialogo-botones">
+                <button type="button" class="boton boton-secundario" id="dialogo-cancelar">Cancelar</button>
+                <button type="submit" class="boton" id="dialogo-aceptar">Crear</button>
+            </div>
+        </form>
+    </dialog>
+
     <script src="/js/config.js"></script>
     <script src="/js/api.js"></script>
+    <script src="/js/utilidades.js"></script>
     <script src="/js/layout.js"></script>
+    <script src="/js/principal.js"></script>
 </body>
 </html>

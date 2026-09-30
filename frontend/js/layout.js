@@ -21,10 +21,6 @@ const SECCIONES = [
     },
 ];
 
-function icono(trazos) {
-    return `<svg viewBox="0 0 24 24" aria-hidden="true">${trazos}</svg>`;
-}
-
 function dibujarBarraLateral(usuario, paginaActual) {
     const barra = document.getElementById('barra-lateral');
 

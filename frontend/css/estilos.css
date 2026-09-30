@@ -260,6 +260,11 @@ svg {
     stroke-linejoin: round;
 }
 
+svg .relleno {
+    fill: currentColor;
+    stroke: none;
+}
+
 .boton-logout {
     margin-top: auto;
     align-self: flex-start;
@@ -306,7 +311,7 @@ svg {
 
 .fila {
     display: grid;
-    grid-template-columns: 24px 1fr 200px 120px;
+    grid-template-columns: 24px 1fr 200px 120px 36px;
     align-items: center;
     gap: 16px;
     padding: 12px 16px;
@@ -349,6 +354,172 @@ svg {
     padding: 48px 16px;
     text-align: center;
     color: var(--texto-suave);
+}
+
+/* Ruta de navegación (Principal > Carpeta > Subcarpeta) */
+.ruta {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 2px;
+    min-width: 0;
+    font-size: 1.5rem;
+}
+
+.ruta svg {
+    color: var(--texto-suave);
+}
+
+.ruta-enlace {
+    font: inherit;
+    color: var(--texto-suave);
+    background: none;
+    border: none;
+    border-radius: 8px;
+    padding: 2px 8px;
+    cursor: pointer;
+}
+
+.ruta-enlace:hover {
+    background: var(--hover);
+    color: var(--texto);
+}
+
+.ruta-actual {
+    padding: 2px 8px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.acciones {
+    display: flex;
+    gap: 8px;
+    flex-shrink: 0;
+}
+
+.boton-con-icono {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+/* Elementos de la lista */
+.nombre-elemento {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 0;
+}
+
+.nombre-elemento > span:last-child,
+.abrir-carpeta {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.icono-carpeta,
+.icono-archivo {
+    display: flex;
+    color: var(--texto-suave);
+}
+
+.abrir-carpeta {
+    font: inherit;
+    color: inherit;
+    background: none;
+    border: none;
+    padding: 0;
+    text-align: left;
+    cursor: pointer;
+}
+
+.abrir-carpeta:hover {
+    text-decoration: underline;
+}
+
+.lista-elementos .fila {
+    user-select: none;
+}
+
+.boton-icono {
+    width: 36px;
+    height: 36px;
+    border: none;
+    border-radius: 50%;
+    background: transparent;
+    color: var(--texto-suave);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.boton-icono:hover {
+    background: rgba(0, 0, 0, 0.06);
+    color: var(--texto);
+}
+
+/* Menú de opciones (⋮) */
+.menu-opciones {
+    position: absolute;
+    z-index: 10;
+    min-width: 180px;
+    padding: 8px 0;
+    background: var(--superficie);
+    border-radius: 8px;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15), 0 8px 24px rgba(0, 0, 0, 0.12);
+}
+
+.menu-opciones button {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    padding: 10px 16px;
+    font: inherit;
+    font-size: 0.875rem;
+    color: var(--texto);
+    background: none;
+    border: none;
+    text-align: left;
+    cursor: pointer;
+}
+
+.menu-opciones button:hover {
+    background: var(--hover);
+}
+
+.menu-opciones svg {
+    color: var(--texto-suave);
+}
+
+/* Diálogo (crear / renombrar) */
+.dialogo {
+    margin: auto;
+    width: calc(100% - 32px);
+    max-width: 400px;
+    padding: 24px;
+    border: none;
+    border-radius: 12px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+}
+
+.dialogo::backdrop {
+    background: rgba(32, 33, 36, 0.4);
+}
+
+.dialogo h2 {
+    font-size: 1.25rem;
+    font-weight: 400;
+    margin-bottom: 16px;
+}
+
+.dialogo-botones {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
 }
 
 /* Pantallas pequeñas: la barra lateral pasa arriba */
@@ -417,8 +588,24 @@ svg {
         font-size: 1.25rem;
     }
 
+    .boton-con-icono span {
+        display: none;
+    }
+
+    .boton-con-icono {
+        padding: 10px;
+    }
+
+    .contenido-encabezado {
+        flex-wrap: wrap;
+    }
+
+    .ruta {
+        font-size: 1.25rem;
+    }
+
     .fila {
-        grid-template-columns: 24px 1fr;
+        grid-template-columns: 24px 1fr 36px;
         padding: 12px 8px;
     }
 
