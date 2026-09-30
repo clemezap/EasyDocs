@@ -1,4 +1,4 @@
-// Página Principal: navegación por carpetas, crear y renombrar; subir, abrir y descargar archivos.
+// Página Principal: navegación por carpetas, crear y renombrar; subir, descargar y renombrar archivos.
 
 (async function () {
     const usuario = await sesion;
@@ -79,7 +79,9 @@
                 <input type="checkbox" class="seleccion" aria-label="Seleccionar ${escaparHtml(el.nombre)}">
                 <span class="nombre-elemento">
                     <span class="icono-${el.tipo} ${el.tipo === 'archivo' ? 'tipo-' + categoriaArchivo(el.tipo_mime, el.nombre) : ''}">${icono(ICONOS[el.tipo])}</span>
-                    <button type="button" class="abrir-elemento" title="${escaparHtml(el.nombre)}">${escaparHtml(el.nombre)}</button>
+                    ${el.tipo === 'carpeta'
+                        ? `<button type="button" class="abrir-elemento" title="${escaparHtml(el.nombre)}">${escaparHtml(el.nombre)}</button>`
+                        : `<span title="${escaparHtml(el.nombre)}">${escaparHtml(el.nombre)}</span>`}
                 </span>
                 <span class="col-extra">${formatearFecha(el.actualizado_en)}</span>
                 <span class="col-extra">${el.tipo === 'carpeta' ? '—' : formatearTamano(el.tamano)}</span>
@@ -91,25 +93,10 @@
         listaVacia.hidden = elementos.length > 0;
     }
 
-    function abrirElemento(fila) {
-        if (fila.dataset.tipo === 'carpeta') {
-            abrirCarpeta(fila.dataset.id);
-        } else {
-            abrirArchivo(fila.dataset.id);
-        }
-    }
-
-    // El navegador muestra PDF, imágenes, video, etc.; el resto se descarga
-    function abrirArchivo(id) {
-        window.open(urlDescarga(id) + '?modo=ver', '_blank', 'noopener');
-    }
-
+    // Los archivos no se visualizan, solo se descargan. La descarga pasa por la API
+    // (que valida la sesión), así que no se genera ningún enlace público.
     function descargarArchivo(id) {
-        window.location.href = urlDescarga(id);
-    }
-
-    function urlDescarga(id) {
-        return API_URL + '/archivos/' + encodeURIComponent(id) + '/descargar';
+        window.location.href = API_URL + '/archivos/' + encodeURIComponent(id) + '/descargar';
     }
 
     function abrirCarpeta(id) {
@@ -138,7 +125,7 @@
         if (!fila) return;
 
         if (e.target.closest('.abrir-elemento')) {
-            abrirElemento(fila);
+            abrirCarpeta(fila.dataset.id);
         } else if (e.target.closest('.btn-opciones')) {
             abrirMenu(fila, e.target.closest('.btn-opciones'));
         } else if (e.target.matches('.seleccion')) {
@@ -147,10 +134,12 @@
         }
     });
 
-    // Doble clic en cualquier parte de la fila también la abre (como en Drive)
+    // Doble clic en la fila de una carpeta también la abre (como en Drive)
     lista.addEventListener('dblclick', (e) => {
         const fila = e.target.closest('.fila');
-        if (fila && !e.target.closest('input, button')) abrirElemento(fila);
+        if (fila && fila.dataset.tipo === 'carpeta' && !e.target.closest('input, button')) {
+            abrirCarpeta(fila.dataset.id);
+        }
     });
 
     seleccionarTodo.addEventListener('change', () => {
@@ -204,10 +193,6 @@
         const elemento = elementoMenu;
 
         switch (opcion.dataset.accion) {
-            case 'abrir':
-                abrirArchivo(elemento.id);
-                break;
-
             case 'descargar':
                 descargarArchivo(elemento.id);
                 break;

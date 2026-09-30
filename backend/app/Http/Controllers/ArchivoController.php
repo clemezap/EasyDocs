@@ -8,7 +8,6 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
-use Symfony\Component\HttpFoundation\HeaderUtils;
 use Symfony\Component\HttpFoundation\Response;
 use Throwable;
 
@@ -76,8 +75,11 @@ class ArchivoController extends Controller
     }
 
     /**
-     * Descarga (o abre, con ?modo=ver) un archivo propio o compartido con el usuario.
-     * Con S3 redirige a un enlace temporal firmado: el archivo no pasa por el servidor.
+     * Descarga un archivo propio o compartido con el usuario.
+     *
+     * El archivo pasa por Laravel: se valida la sesión en cada descarga y nunca se
+     * genera un enlace de S3 que alguien pueda copiar y abrir sin cuenta.
+     * Siempre se descarga (attachment), nunca se muestra en el navegador.
      */
     public function descargar(Request $request, string $id): Response
     {
@@ -87,34 +89,18 @@ class ArchivoController extends Controller
             return $this->noEncontrado('El archivo no existe o no tienes acceso.');
         }
 
-        $modo = $request->query('modo') === 'ver'
-            ? HeaderUtils::DISPOSITION_INLINE
-            : HeaderUtils::DISPOSITION_ATTACHMENT;
-
-        if (config('filesystems.disks.'.config('filesystems.default').'.driver') === 's3') {
-            $url = $this->disco()->temporaryUrl(
-                $archivo->s3_key,
-                now()->addMinutes(config('easydocs.minutos_descarga')),
-                [
-                    'ResponseContentType' => $archivo->tipo_mime,
-                    'ResponseContentDisposition' => HeaderUtils::makeDisposition(
-                        $modo,
-                        $archivo->nombre,
-                        $this->nombreAscii($archivo->nombre)
-                    ),
-                ]
-            );
-
-            return redirect()->away($url);
+        if (! $this->disco()->exists($archivo->s3_key)) {
+            return $this->noEncontrado('El archivo ya no está disponible en el almacenamiento.');
         }
 
-        // Disco local (desarrollo): se envía el archivo directamente.
-        // "sandbox" evita que un HTML o SVG subido ejecute código en nuestro dominio.
-        return $this->disco()->response($archivo->s3_key, $archivo->nombre, [
+        // Archivos grandes: que PHP no corte la transferencia a la mitad
+        set_time_limit(0);
+
+        return $this->disco()->download($archivo->s3_key, $archivo->nombre, [
             'Content-Type' => $archivo->tipo_mime,
-            'Content-Security-Policy' => 'sandbox',
             'X-Content-Type-Options' => 'nosniff',
-        ], $modo);
+            'Cache-Control' => 'private, no-store',
+        ]);
     }
 
     public function renombrar(Request $request, string $id): JsonResponse
@@ -195,13 +181,5 @@ class ArchivoController extends Controller
         $extension = strtolower(pathinfo($nombre, PATHINFO_EXTENSION));
 
         return preg_match('/^[a-z0-9]{1,10}$/', $extension) ? $extension : '';
-    }
-
-    /**
-     * Versión ASCII del nombre para navegadores que no soportan nombres UTF-8.
-     */
-    private function nombreAscii(string $nombre): string
-    {
-        return str_replace(['%', '"'], '', Str::ascii($nombre)) ?: 'archivo';
     }
 }
