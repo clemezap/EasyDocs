@@ -814,6 +814,60 @@ select {
     text-decoration: underline;
 }
 
+/* Ventana "Mover" */
+.dialogo.dialogo-mover {
+    max-width: 480px;
+}
+
+/* Doble clase: debe ganarle a .ruta en pantallas pequeñas */
+.ruta.ruta-mover {
+    font-size: 1rem;
+    margin-bottom: 8px;
+}
+
+.mover-carpetas {
+    list-style: none;
+    height: 260px;
+    overflow-y: auto;
+    border: 1px solid var(--borde);
+    border-radius: 8px;
+    margin-bottom: 16px;
+}
+
+.mover-carpeta {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    padding: 10px 12px;
+    font: inherit;
+    color: var(--texto);
+    background: none;
+    border: none;
+    border-bottom: 1px solid var(--borde);
+    text-align: left;
+    cursor: pointer;
+}
+
+.mover-carpeta:hover {
+    background: var(--hover);
+}
+
+.mover-carpeta .nombre-texto {
+    flex: 1;
+    min-width: 0;
+}
+
+.mover-carpeta > svg {
+    color: var(--texto-suave);
+}
+
+.mover-vacio {
+    padding: 48px 16px;
+    text-align: center;
+    color: var(--texto-suave);
+}
+
 /* Menú de opciones (⋮) */
 .menu-opciones {
     position: absolute;

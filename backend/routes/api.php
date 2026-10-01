@@ -37,6 +37,7 @@ Route::middleware('web')->group(function () {
         Route::post('/archivos', [ArchivoController::class, 'subir']);
         Route::get('/archivos/{id}/descargar', [ArchivoController::class, 'descargar']);
         Route::patch('/archivos/{id}', [ArchivoController::class, 'renombrar']);
+        Route::patch('/archivos/{id}/mover', [ArchivoController::class, 'mover']);
 
         // Compartir con otros usuarios
         Route::get('/compartidos', [CompartirController::class, 'conmigo']);

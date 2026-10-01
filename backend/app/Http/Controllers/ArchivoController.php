@@ -133,6 +133,41 @@ class ArchivoController extends Controller
     }
 
     /**
+     * Mueve un archivo a otra carpeta (o a la raíz con carpeta_padre = null).
+     * Solo el dueño puede moverlo, y solo a una carpeta suya que no esté en la papelera.
+     * En S3 no cambia nada: la ubicación solo existe en la base de datos.
+     */
+    public function mover(Request $request, string $id): JsonResponse
+    {
+        $usuarioId = $this->usuarioId($request);
+        $archivo = $this->archivoPropio($id, $usuarioId);
+
+        if (! $archivo) {
+            return $this->noEncontrado('El archivo no existe.');
+        }
+
+        $request->validate([
+            'carpeta_padre' => ['nullable', 'string'],
+        ]);
+
+        $destino = $request->input('carpeta_padre') ?: null;
+
+        if ($destino !== null && ! $this->carpetaActiva($destino, $usuarioId)) {
+            return $this->noEncontrado('La carpeta de destino no existe.');
+        }
+
+        DB::update(
+            'UPDATE archivos SET carpeta_padre = ? WHERE id = ? AND usuario_id = ?',
+            [$destino, $id, $usuarioId]
+        );
+
+        return response()->json([
+            'archivo' => ['id' => $id, 'carpeta_padre' => $destino],
+            'origen' => $archivo->carpeta_padre,
+        ]);
+    }
+
+    /**
      * Archivo activo del que el usuario es dueño, o null.
      */
     private function archivoPropio(string $id, int $usuarioId): ?object
