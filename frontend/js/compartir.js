@@ -1,4 +1,5 @@
-// Ventana "Compartir": agregar personas por correo, cambiar su permiso y quitar su acceso.
+// Ventana "Compartir": agregar personas por correo, cambiar su permiso y quitar su acceso;
+// crear, copiar y desactivar el enlace público.
 // Solo el dueño del archivo la usa (la API rechaza a cualquier otro usuario).
 
 const PERMISOS = {
@@ -6,14 +7,19 @@ const PERMISOS = {
     escritura: 'Escritura',
 };
 
-async function abrirCompartir(archivo) {
+// alCerrar: se llama al cerrar la ventana (para actualizar la lista de archivos)
+async function abrirCompartir(archivo, alCerrar) {
     const dueno = await sesion;
     const dialogo = crearDialogoCompartir();
     const form = dialogo.querySelector('form');
     const error = dialogo.querySelector('.error');
     const lista = dialogo.querySelector('.personas');
+    const seccionEnlace = dialogo.querySelector('.enlace-publico');
 
     const rutaBase = `/archivos/${encodeURIComponent(archivo.id)}/compartidos`;
+    const rutaEnlace = `/archivos/${encodeURIComponent(archivo.id)}/enlace`;
+
+    dialogo.onclose = () => alCerrar?.();
 
     dialogo.querySelector('.compartir-nombre').textContent = archivo.nombre;
     form.reset();
@@ -114,12 +120,100 @@ async function abrirCompartir(archivo) {
         mostrarAviso(`Se quitó el acceso a ${nombre}.`);
     };
 
+    // ---------------------------------------------------------------------
+    // Enlace público
+    // ---------------------------------------------------------------------
+
+    function dibujarEnlace(enlace) {
+        if (!enlace) {
+            seccionEnlace.innerHTML = `
+                <p class="enlace-estado">Desactivado. Solo tú y las personas agregadas pueden acceder.</p>
+                <button type="button" class="boton boton-secundario boton-con-icono" data-enlace="crear">
+                    ${icono(ICONOS.enlace)}<span>Crear enlace público</span>
+                </button>
+            `;
+            return;
+        }
+
+        const url = `${location.origin}${API_URL}/publico/${enlace.token}`;
+
+        seccionEnlace.innerHTML = `
+            <p class="enlace-estado enlace-activo">
+                ${icono(ICONOS.enlace)}
+                Cualquier persona con el enlace puede ver el archivo, sin iniciar sesión.
+            </p>
+            <div class="enlace-fila">
+                <input type="text" readonly aria-label="Enlace público">
+                <button type="button" class="boton" data-enlace="copiar">Copiar</button>
+            </div>
+            <button type="button" class="boton-texto boton-texto-peligro" data-enlace="desactivar">Desactivar enlace</button>
+        `;
+        seccionEnlace.querySelector('input').value = url;
+    }
+
+    seccionEnlace.onclick = async (e) => {
+        const boton = e.target.closest('[data-enlace]');
+        if (!boton) return;
+
+        error.hidden = true;
+
+        switch (boton.dataset.enlace) {
+            case 'crear': {
+                const { ok, datos } = await api(rutaEnlace, { method: 'POST' });
+                ok ? dibujarEnlace(datos.enlace) : mostrarError(datos);
+                break;
+            }
+
+            case 'copiar': {
+                const copiado = await copiarAlPortapapeles(seccionEnlace.querySelector('input'));
+                mostrarAviso(copiado ? 'Enlace copiado.' : 'No se pudo copiar. El enlace quedó seleccionado: cópialo con Ctrl+C.');
+                break;
+            }
+
+            case 'desactivar': {
+                const { ok, datos } = await api(rutaEnlace, { method: 'DELETE' });
+                if (!ok) {
+                    mostrarError(datos);
+                    break;
+                }
+                dibujarEnlace(null);
+                mostrarAviso('El enlace público se desactivó. Ya nadie puede abrirlo.');
+                break;
+            }
+        }
+    };
+
+    seccionEnlace.innerHTML = '';
     dialogo.showModal();
 
-    const { ok, datos } = await api(rutaBase);
-    ok ? dibujar(datos.compartidos) : mostrarError(datos);
+    const [personas, enlace] = await Promise.all([api(rutaBase), api(rutaEnlace)]);
+
+    personas.ok ? dibujar(personas.datos.compartidos) : mostrarError(personas.datos);
+    if (enlace.ok) dibujarEnlace(enlace.datos.enlace);
 
     form.correo.focus();
+}
+
+// navigator.clipboard solo existe con HTTPS (o localhost) y puede rechazar la copia.
+// Si no funciona se usa el método antiguo: seleccionar el texto y copiarlo.
+// Devuelve true si se copió.
+async function copiarAlPortapapeles(input) {
+    if (navigator.clipboard && window.isSecureContext) {
+        try {
+            await navigator.clipboard.writeText(input.value);
+            return true;
+        } catch {
+            // se intenta con el método antiguo
+        }
+    }
+
+    input.select();
+
+    try {
+        return document.execCommand('copy');
+    } catch {
+        return false;
+    }
 }
 
 function inicial(nombre) {
@@ -149,6 +243,9 @@ function crearDialogoCompartir() {
 
         <h3>Personas con acceso</h3>
         <ul class="personas"></ul>
+
+        <h3>Enlace público</h3>
+        <div class="enlace-publico"></div>
 
         <div class="dialogo-botones">
             <button type="button" class="boton" value="listo">Listo</button>

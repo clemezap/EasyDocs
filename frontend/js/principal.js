@@ -111,7 +111,7 @@
                 break;
 
             case 'compartir':
-                abrirCompartir(elemento);
+                abrirCompartir(elemento, cargar);
                 break;
 
             case 'renombrar':

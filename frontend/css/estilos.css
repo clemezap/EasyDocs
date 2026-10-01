@@ -135,6 +135,23 @@ input:focus {
     color: var(--texto-suave);
 }
 
+/* Página de mensaje (ej. enlace no disponible) */
+.tarjeta-mensaje {
+    text-align: center;
+}
+
+.tarjeta-mensaje p {
+    color: var(--texto-suave);
+    line-height: 1.5;
+}
+
+.icono-mensaje {
+    width: 48px;
+    height: 48px;
+    margin: 16px auto;
+    color: var(--texto-suave);
+}
+
 /* Estructura de la aplicación: barra lateral + contenido */
 .app {
     display: grid;
@@ -412,7 +429,7 @@ svg .relleno {
     min-width: 0;
 }
 
-.nombre-elemento > span:last-child,
+.nombre-texto,
 .abrir-elemento {
     overflow: hidden;
     text-overflow: ellipsis;
@@ -732,6 +749,69 @@ select {
     .compartir-form input {
         grid-column: 1 / -1;
     }
+}
+
+/* Marcas junto al nombre: compartido / enlace público */
+.marca-acceso {
+    display: flex;
+    flex-shrink: 0;
+    color: var(--texto-suave);
+}
+
+.marca-acceso svg {
+    width: 16px;
+    height: 16px;
+}
+
+/* Sección "Enlace público" de la ventana Compartir */
+.enlace-estado {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 12px;
+    font-size: 0.875rem;
+    color: var(--texto-suave);
+}
+
+.enlace-activo {
+    color: #188038;
+}
+
+.enlace-fila {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+
+.enlace-fila input {
+    margin-bottom: 0;
+    min-width: 0;
+    font-size: 0.875rem;
+    background: var(--fondo);
+}
+
+.enlace-publico {
+    margin-bottom: 20px;
+}
+
+.boton-texto {
+    font: inherit;
+    font-size: 0.875rem;
+    font-weight: 500;
+    padding: 6px 0;
+    background: none;
+    border: none;
+    color: var(--primario);
+    cursor: pointer;
+}
+
+.boton-texto-peligro {
+    color: var(--error);
+}
+
+.boton-texto:hover {
+    text-decoration: underline;
 }
 
 /* Menú de opciones (⋮) */

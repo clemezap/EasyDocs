@@ -42,10 +42,12 @@ class CarpetaController extends Controller
         );
 
         $archivos = DB::select(
-            "SELECT id, nombre, tipo_mime, tamano, creado_en, actualizado_en
-             FROM archivos
-             WHERE usuario_id = ? AND $filtroPadre AND papelera = 0
-             ORDER BY nombre",
+            "SELECT a.id, a.nombre, a.tipo_mime, a.tamano, a.creado_en, a.actualizado_en,
+                    EXISTS (SELECT 1 FROM archivos_compartidos ac WHERE ac.archivo_id = a.id) AS compartido,
+                    EXISTS (SELECT 1 FROM enlaces_publicos e WHERE e.archivo_id = a.id AND e.activo = 1) AS enlace_publico
+             FROM archivos a
+             WHERE a.usuario_id = ? AND a.$filtroPadre AND a.papelera = 0
+             ORDER BY a.nombre",
             [$usuarioId, ...$parametrosPadre]
         );
 

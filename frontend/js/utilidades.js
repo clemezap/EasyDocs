@@ -15,6 +15,8 @@ const ICONOS = {
     papelera: '<path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13M10 11v6M14 11v6"/>',
     restaurar: '<path d="M4 12a8 8 0 1 0 2.3-5.7L4 8.6"/><path d="M4 4v4.6h4.6"/>',
     compartir: '<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0M19 8v6M16 11h6"/>',
+    enlace: '<path d="M10 14a4.5 4.5 0 0 0 6.4 0l3-3a4.5 4.5 0 0 0-6.4-6.4l-1 1"/><path d="M14 10a4.5 4.5 0 0 0-6.4 0l-3 3a4.5 4.5 0 0 0 6.4 6.4l1-1"/>',
+    personas: '<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><circle cx="17" cy="9" r="2.5"/><path d="M16 14.2A5 5 0 0 1 21.5 19"/>',
 };
 
 // Categoría de un archivo según su extensión o su tipo MIME (para el color de su icono)
@@ -106,13 +108,29 @@ function filaElemento(el, { fecha, carpetaAbrible = false, columnas }) {
                 <span class="icono-${el.tipo} ${categoria}">${icono(ICONOS[el.tipo])}</span>
                 ${el.tipo === 'carpeta' && carpetaAbrible
                     ? `<button type="button" class="abrir-elemento" title="${nombre}">${nombre}</button>`
-                    : `<span title="${nombre}">${nombre}</span>`}
+                    : `<span class="nombre-texto" title="${nombre}">${nombre}</span>`}
+                ${marcasAcceso(el)}
             </span>
             <span class="col-extra">${columna1}</span>
             <span class="col-extra">${columna2}</span>
             <button type="button" class="boton-icono btn-opciones" aria-label="Opciones de ${nombre}" aria-haspopup="menu">${icono(ICONOS.opciones)}</button>
         </li>
     `;
+}
+
+// Iconos junto al nombre: compartido con personas y/o con enlace público activo.
+// MySQL devuelve EXISTS como "0"/"1" (texto), por eso se convierte a número.
+function marcasAcceso(el) {
+    let marcas = '';
+
+    if (Number(el.compartido) > 0) {
+        marcas += `<span class="marca-acceso" title="Compartido con otras personas">${icono(ICONOS.personas)}</span>`;
+    }
+    if (Number(el.enlace_publico) > 0) {
+        marcas += `<span class="marca-acceso" title="Tiene enlace público activo">${icono(ICONOS.enlace)}</span>`;
+    }
+
+    return marcas;
 }
 
 // Conecta los eventos de una lista: abrir carpetas, selección con casillas y menú ⋮.

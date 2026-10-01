@@ -4,6 +4,7 @@ use App\Http\Controllers\ArchivoController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CarpetaController;
 use App\Http\Controllers\CompartirController;
+use App\Http\Controllers\EnlacePublicoController;
 use App\Http\Controllers\PapeleraController;
 use Illuminate\Support\Facades\Route;
 
@@ -13,6 +14,12 @@ Route::get('/estado', function () {
         'estado' => 'ok',
     ]);
 });
+
+// Enlace público: SIN sesión, cualquiera con el enlace puede ver el archivo.
+// Límite de 60 peticiones por minuto por IP.
+Route::get('/publico/{token}', [EnlacePublicoController::class, 'abrir'])
+    ->where('token', '[a-f0-9]{64}')
+    ->middleware('throttle:60,1');
 
 // Rutas con sesión por cookie (frontend y API comparten origen)
 Route::middleware('web')->group(function () {
@@ -37,6 +44,11 @@ Route::middleware('web')->group(function () {
         Route::post('/archivos/{id}/compartidos', [CompartirController::class, 'agregar']);
         Route::patch('/archivos/{id}/compartidos/{compartido}', [CompartirController::class, 'cambiarPermiso']);
         Route::delete('/archivos/{id}/compartidos/{compartido}', [CompartirController::class, 'quitar']);
+
+        // Enlace público (solo el dueño lo administra)
+        Route::get('/archivos/{id}/enlace', [EnlacePublicoController::class, 'ver']);
+        Route::post('/archivos/{id}/enlace', [EnlacePublicoController::class, 'crear']);
+        Route::delete('/archivos/{id}/enlace', [EnlacePublicoController::class, 'desactivar']);
 
         // Papelera
         Route::post('/carpetas/{id}/papelera', [PapeleraController::class, 'enviarCarpeta']);
