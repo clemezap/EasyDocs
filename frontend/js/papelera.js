@@ -26,7 +26,6 @@
             ...datos.archivos.map((a) => ({ ...a, tipo: 'archivo' })),
         ].sort((a, b) => b.fecha_papelera.localeCompare(a.fecha_papelera));
 
-        document.getElementById('seleccionar-todo').checked = false;
         lista.innerHTML = elementos.map((el) => filaElemento(el, { fecha: 'fecha_papelera' })).join('');
 
         listaVacia.textContent = 'La papelera está vacía.';
@@ -36,7 +35,6 @@
 
     prepararLista({
         lista,
-        seleccionarTodo: document.getElementById('seleccionar-todo'),
         menu: document.getElementById('menu-opciones'),
         buscar: (id) => elementos.find((el) => el.id === id),
         alElegir: (accion, elemento) => {

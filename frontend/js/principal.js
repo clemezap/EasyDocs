@@ -8,7 +8,6 @@
     const ruta = document.getElementById('ruta');
     const lista = document.getElementById('lista-elementos');
     const listaVacia = document.getElementById('lista-vacia');
-    const seleccionarTodo = document.getElementById('seleccionar-todo');
     const menu = document.getElementById('menu-opciones');
 
     // null = raíz. Se guarda en la URL (?carpeta=<id>) para poder recargar y usar "atrás".
@@ -60,7 +59,6 @@
     }
 
     function dibujarLista() {
-        seleccionarTodo.checked = false;
 
         lista.innerHTML = elementos
             .map((el) => filaElemento(el, { fecha: 'actualizado_en', carpetaAbrible: true }))
@@ -93,7 +91,6 @@
 
     prepararLista({
         lista,
-        seleccionarTodo,
         menu,
         buscar: (id) => elementos.find((el) => el.id === id),
         alAbrirCarpeta: abrirCarpeta,

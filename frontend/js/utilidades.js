@@ -103,7 +103,6 @@ function filaElemento(el, { fecha, carpetaAbrible = false, columnas }) {
 
     return `
         <li class="fila" data-id="${el.id}" data-tipo="${el.tipo}">
-            <input type="checkbox" class="seleccion" aria-label="Seleccionar ${nombre}">
             <span class="nombre-elemento">
                 <span class="icono-${el.tipo} ${categoria}">${icono(ICONOS[el.tipo])}</span>
                 ${el.tipo === 'carpeta' && carpetaAbrible
@@ -133,13 +132,13 @@ function marcasAcceso(el) {
     return marcas;
 }
 
-// Conecta los eventos de una lista: abrir carpetas, selección con casillas y menú ⋮.
+// Conecta los eventos de una lista: abrir carpetas y menú ⋮.
 //   buscar(id)            -> el elemento con ese id
 //   alAbrirCarpeta(id)    -> opcional; clic en el nombre o doble clic en la fila
 //   alElegir(accion, el)  -> opción elegida del menú (data-accion)
 //   opcionVisible(accion, el) -> opcional; para ocultar opciones según el elemento
 // Las opciones del menú con data-tipos="carpeta archivo" solo aparecen en esos tipos.
-function prepararLista({ lista, seleccionarTodo, menu, buscar, alAbrirCarpeta, alElegir, opcionVisible = () => true }) {
+function prepararLista({ lista, menu, buscar, alAbrirCarpeta, alElegir, opcionVisible = () => true }) {
     let elementoMenu = null;
 
     function abrirMenu(fila, boton) {
@@ -170,26 +169,15 @@ function prepararLista({ lista, seleccionarTodo, menu, buscar, alAbrirCarpeta, a
             alAbrirCarpeta(fila.dataset.id);
         } else if (e.target.closest('.btn-opciones')) {
             abrirMenu(fila, e.target.closest('.btn-opciones'));
-        } else if (e.target.matches('.seleccion')) {
-            fila.classList.toggle('seleccionada', e.target.checked);
-            const casillas = [...lista.querySelectorAll('.seleccion')];
-            seleccionarTodo.checked = casillas.length > 0 && casillas.every((c) => c.checked);
         }
     });
 
     // Doble clic en la fila de una carpeta también la abre (como en Drive)
     lista.addEventListener('dblclick', (e) => {
         const fila = e.target.closest('.fila');
-        if (alAbrirCarpeta && fila && fila.dataset.tipo === 'carpeta' && !e.target.closest('input, button')) {
+        if (alAbrirCarpeta && fila && fila.dataset.tipo === 'carpeta' && !e.target.closest('button')) {
             alAbrirCarpeta(fila.dataset.id);
         }
-    });
-
-    seleccionarTodo.addEventListener('change', () => {
-        lista.querySelectorAll('.fila').forEach((fila) => {
-            fila.querySelector('.seleccion').checked = seleccionarTodo.checked;
-            fila.classList.toggle('seleccionada', seleccionarTodo.checked);
-        });
     });
 
     document.addEventListener('click', (e) => {

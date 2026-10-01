@@ -22,7 +22,6 @@
 
         elementos = datos.archivos.map((a) => ({ ...a, tipo: 'archivo' }));
 
-        document.getElementById('seleccionar-todo').checked = false;
         lista.innerHTML = elementos.map((el) => filaElemento(el, {
             columnas: [
                 `<span title="${escaparHtml(el.propietario_correo)}">${escaparHtml(el.propietario)}</span>`,
@@ -36,7 +35,6 @@
 
     prepararLista({
         lista,
-        seleccionarTodo: document.getElementById('seleccionar-todo'),
         menu: document.getElementById('menu-opciones'),
         buscar: (id) => elementos.find((el) => el.id === id),
         opcionVisible: (accion, el) => accion !== 'renombrar' || el.permiso === 'escritura',
