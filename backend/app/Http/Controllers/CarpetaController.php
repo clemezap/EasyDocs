@@ -125,6 +125,57 @@ class CarpetaController extends Controller
     }
 
     /**
+     * Mueve una carpeta (con todo su contenido) a otra carpeta o a la raíz.
+     * Solo cambia su carpeta_padre: subcarpetas y archivos la siguen solos.
+     */
+    public function mover(Request $request, string $id): JsonResponse
+    {
+        $usuarioId = $this->usuarioId($request);
+        $carpeta = $this->carpetaActiva($id, $usuarioId);
+
+        if (! $carpeta) {
+            return $this->noEncontrado('La carpeta no existe.');
+        }
+
+        $request->validate([
+            'carpeta_padre' => ['nullable', 'string'],
+        ]);
+
+        $destino = $request->input('carpeta_padre') ?: null;
+
+        if ($destino !== null) {
+            if (! $this->carpetaActiva($destino, $usuarioId)) {
+                return $this->noEncontrado('La carpeta de destino no existe.');
+            }
+
+            // El destino no puede ser la carpeta misma ni estar dentro de ella:
+            // se sube desde el destino hasta la raíz y se busca la carpeta en el camino.
+            $camino = array_column($this->ruta($destino, $usuarioId), 'id');
+
+            if (in_array($id, $camino, true)) {
+                return $this->errorValidacion(
+                    'carpeta_padre',
+                    'No puedes mover una carpeta dentro de sí misma ni de una de sus subcarpetas.'
+                );
+            }
+        }
+
+        if ($this->nombreRepetido($carpeta->nombre, $destino, $usuarioId, $id)) {
+            return $this->errorValidacion('carpeta_padre', 'Ya existe una carpeta con ese nombre en el destino.');
+        }
+
+        DB::update(
+            'UPDATE carpetas SET carpeta_padre = ? WHERE id = ? AND usuario_id = ?',
+            [$destino, $id, $usuarioId]
+        );
+
+        return response()->json([
+            'carpeta' => ['id' => $id, 'carpeta_padre' => $destino],
+            'origen' => $carpeta->carpeta_padre,
+        ]);
+    }
+
+    /**
      * Carpetas desde la raíz hasta la carpeta indicada (para la barra de navegación).
      * Sube por carpeta_padre con una consulta recursiva.
      */

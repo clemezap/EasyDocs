@@ -1,5 +1,5 @@
 // Página Principal: navegación por carpetas; crear, renombrar y enviar a la papelera;
-// subir, descargar, compartir y mover archivos.
+// mover carpetas y archivos; subir, descargar y compartir archivos.
 
 (async function () {
     const usuario = await sesion;
@@ -119,7 +119,7 @@
                 break;
 
             case 'mover':
-                moverArchivo(elemento);
+                moverElemento(elemento);
                 break;
 
             case 'papelera':
@@ -128,17 +128,19 @@
         }
     }
 
-    async function moverArchivo(archivo) {
+    async function moverElemento(elemento) {
         const origen = carpetaActual;
-        const resultado = await abrirMover(archivo, origen);
+        const resultado = await abrirMover(elemento, origen);
         if (!resultado) return;
 
         cargar();
 
-        mostrarAviso(`"${archivo.nombre}" se movió a "${resultado.nombreDestino}".`, {
+        const tipo = elemento.tipo === 'carpeta' ? 'carpetas' : 'archivos';
+
+        mostrarAviso(`"${elemento.nombre}" se movió a "${resultado.nombreDestino}".`, {
             textoAccion: 'Deshacer',
             alAccionar: async () => {
-                await api(`/archivos/${encodeURIComponent(archivo.id)}/mover`, {
+                await api(`/${tipo}/${encodeURIComponent(elemento.id)}/mover`, {
                     method: 'PATCH',
                     body: { carpeta_padre: origen },
                 });

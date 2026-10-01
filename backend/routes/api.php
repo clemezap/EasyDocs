@@ -33,6 +33,7 @@ Route::middleware('web')->group(function () {
         Route::get('/carpetas/contenido', [CarpetaController::class, 'contenido']);
         Route::post('/carpetas', [CarpetaController::class, 'crear']);
         Route::patch('/carpetas/{id}', [CarpetaController::class, 'renombrar']);
+        Route::patch('/carpetas/{id}/mover', [CarpetaController::class, 'mover']);
 
         Route::post('/archivos', [ArchivoController::class, 'subir']);
         Route::get('/archivos/{id}/descargar', [ArchivoController::class, 'descargar']);

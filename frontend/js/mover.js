@@ -1,9 +1,10 @@
-// Ventana "Mover": explorar las carpetas propias y mover un archivo a la elegida.
+// Ventana "Mover": explorar las carpetas propias y mover un archivo o una carpeta a la elegida.
 // Usa la misma API que la página Principal (/carpetas/contenido) para navegar.
 
-// archivo: { id, nombre }. origen: id de la carpeta donde está ahora (null = raíz).
+// elemento: { id, nombre, tipo: 'carpeta' | 'archivo' }.
+// origen: id de la carpeta donde está ahora (null = raíz).
 // Devuelve una promesa con { destino, nombreDestino } si se movió, o null si se canceló.
-function abrirMover(archivo, origen) {
+function abrirMover(elemento, origen) {
     const dialogo = crearDialogoMover();
     const ruta = dialogo.querySelector('.ruta');
     const lista = dialogo.querySelector('.mover-carpetas');
@@ -14,7 +15,7 @@ function abrirMover(archivo, origen) {
     let actual = origen;
     let nombreActual = 'Principal';
 
-    dialogo.querySelector('.mover-nombre').textContent = archivo.nombre;
+    dialogo.querySelector('.mover-nombre').textContent = elemento.nombre;
 
     async function ir(carpetaId) {
         error.hidden = true;
@@ -42,15 +43,21 @@ function abrirMover(archivo, origen) {
 
         lista.innerHTML = datos.carpetas.length === 0
             ? '<li class="mover-vacio">No hay subcarpetas aquí.</li>'
-            : datos.carpetas.map((c) => `
-            <li>
-                <button type="button" class="mover-carpeta" data-id="${c.id}">
-                    <span class="icono-carpeta">${icono(ICONOS.carpeta)}</span>
-                    <span class="nombre-texto">${escaparHtml(c.nombre)}</span>
-                    ${icono(ICONOS.separador)}
-                </button>
-            </li>
-        `).join('');
+            : datos.carpetas.map((c) => {
+                // Una carpeta no se puede mover dentro de sí misma: se muestra desactivada
+                // (y así tampoco se puede entrar a sus subcarpetas).
+                const esLaMisma = elemento.tipo === 'carpeta' && c.id === elemento.id;
+
+                return `
+                    <li>
+                        <button type="button" class="mover-carpeta" data-id="${c.id}" ${esLaMisma ? 'disabled title="No puedes mover una carpeta dentro de sí misma"' : ''}>
+                            <span class="icono-carpeta">${icono(ICONOS.carpeta)}</span>
+                            <span class="nombre-texto">${escaparHtml(c.nombre)}</span>
+                            ${esLaMisma ? '' : icono(ICONOS.separador)}
+                        </button>
+                    </li>
+                `;
+            }).join('');
 
         // No tiene sentido mover a la carpeta donde ya está
         const yaEstaAqui = actual === (origen || null);
@@ -80,7 +87,8 @@ function abrirMover(archivo, origen) {
 
             botonMover.disabled = true;
 
-            const { ok, datos } = await api(`/archivos/${encodeURIComponent(archivo.id)}/mover`, {
+            const tipo = elemento.tipo === 'carpeta' ? 'carpetas' : 'archivos';
+            const { ok, datos } = await api(`/${tipo}/${encodeURIComponent(elemento.id)}/mover`, {
                 method: 'PATCH',
                 body: { carpeta_padre: actual },
             });

@@ -849,8 +849,14 @@ select {
     cursor: pointer;
 }
 
-.mover-carpeta:hover {
+.mover-carpeta:hover:not(:disabled) {
     background: var(--hover);
+}
+
+.mover-carpeta:disabled {
+    color: var(--texto-suave);
+    opacity: 0.6;
+    cursor: not-allowed;
 }
 
 .mover-carpeta .nombre-texto {
